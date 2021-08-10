@@ -1,6 +1,6 @@
 <template>
     <div id="chat-wrapper">
-        <ul class="chat-thread">
+        <ul class="chat-thread" ref="chatWrapp">
             <li :class="[mess.from === socketId ? 'me' : 'you' ]" v-for="mess in messages" :key="mess.data">
                 {{mess.data}}
             </li>
@@ -14,7 +14,7 @@
 
 <script lang="ts">
 import { Socket } from 'socket.io-client';
-import { defineComponent, inject, Ref, ref } from 'vue';
+import { defineComponent, inject, Ref, ref, onMounted } from 'vue';
 import { Message } from './../types/ChatTypes'
 import router from './../router'
 
@@ -23,16 +23,15 @@ export default defineComponent({
         const socket: Socket | undefined = inject('socket')
 
         if (!socket) {
-
-
-
-
             throw new Error('Chat not working now')
         }
         socket.emit('requestForMessages')
         const messages: Ref<Message[]> = ref([])
-        socket.on('loadMessages', (loadMessages: Message[]) => messages.value = loadMessages)
-
+        socket.on('loadMessages', (loadMessages: Message[]) => {
+            messages.value = loadMessages
+            scrollDown()
+        })
+            
         const textMessage = ref("")
         const sendMessage = (e: Event) => {
             e.preventDefault()
@@ -44,7 +43,16 @@ export default defineComponent({
             router.push('/')
         })
         const socketId = socket.id
-        return { messages, sendMessage, textMessage, socketId }
+        const chatWrapp = ref() 
+
+        const scrollDown = () => {
+            const chatWrapp = document.querySelector('.chat-thread')
+            if (chatWrapp) {
+                chatWrapp.scrollTop = chatWrapp.scrollHeight
+            }
+        }
+        
+        return { messages, sendMessage, textMessage, socketId, chatWrapp, scrollDown }
     },
 });
 </script>
